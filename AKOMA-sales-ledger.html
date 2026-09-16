@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gate &amp; Sales Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E7DFC4; --panel:#F3EEDD; --panel-alt:#EDE6CC; --ink:#232A1E; --ink-muted:#5B5A48;
+    --line:#C9BFA0; --accent:#2B3A2E; --accent-soft:#3F6B44; --ok:#3F6B44; --warn:#B9862A;
+    --bad:#A23B2E; --unknown:#7A7360; --focus:#2B3A2E;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14181A; --panel:#1D2320; --panel-alt:#232920; --ink:#E9E3D0; --ink-muted:#A7A28C;
+      --line:#34392F; --accent:#8FBF95; --accent-soft:#6FA97A; --ok:#6FA97A; --warn:#E0AC4C;
+      --bad:#DD6A54; --unknown:#9C9782; --focus:#8FBF95;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14181A; --panel:#1D2320; --panel-alt:#232920; --ink:#E9E3D0; --ink-muted:#A7A28C;
+    --line:#34392F; --accent:#8FBF95; --accent-soft:#6FA97A; --ok:#6FA97A; --warn:#E0AC4C;
+    --bad:#DD6A54; --unknown:#9C9782; --focus:#8FBF95;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans', system-ui, -apple-system, sans-serif; font-size:15px; line-height:1.55; }
+  h1,h2,h3{ font-family:'Fraunces', Georgia, serif; font-weight:600; margin:0 0 0.3em; }
+  h1{ font-size:1.35rem; font-weight:500; }
+  h2{ font-size:1.15rem; }
+  h3{ font-size:0.98rem; font-weight:600; }
+  p{ margin:0 0 0.7em; max-width:64ch; }
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  button{ font-family:inherit; cursor:pointer; }
+  select, textarea, input[type="text"], input[type="number"], input[type="date"]{
+    font-family:inherit; font-size:0.92rem; color:var(--ink); background:var(--panel-alt);
+    border:1px solid var(--line); border-radius:2px; padding:0.5em 0.6em; width:100%;
+  }
+  textarea{ min-height:3.6em; resize:vertical; }
+  label.field{ display:block; font-size:0.8rem; color:var(--ink-muted); margin:0.6em 0 0.25em; }
+  :focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  header.top{
+    display:flex; justify-content:space-between; align-items:center; gap:1rem;
+    padding:0.9rem 1.4rem; border-bottom:1px solid var(--line); flex-wrap:wrap;
+  }
+  header.top .brand{ display:flex; align-items:baseline; gap:0.6rem; }
+  header.top .brand .sync{ font-size:0.72rem; color:var(--ink-muted); }
+  .who{ display:flex; align-items:center; gap:0.6rem; font-size:0.85rem; }
+  .who .role-badge{ padding:0.2em 0.6em; border:1px solid var(--line); border-radius:2px; font-size:0.75rem; color:var(--ink-muted); }
+  .who button{ background:transparent; border:1px solid var(--line); color:var(--ink); padding:0.3em 0.7em; border-radius:2px; font-size:0.78rem; }
+
+  nav.tabs{ display:flex; gap:2px; padding:0.7rem 1.4rem 0; border-bottom:1px solid var(--line); overflow-x:auto; }
+  nav.tabs button{
+    background:transparent; border:none; border-bottom:3px solid transparent; color:var(--ink-muted);
+    padding:0.5rem 0.8rem; font-size:0.88rem; white-space:nowrap;
+  }
+  nav.tabs button.active{ color:var(--ink); border-bottom-color:var(--accent-soft); font-weight:500; }
+
+  main{ max-width:900px; margin:0 auto; padding:1.4rem 1.4rem 4rem; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:2px; padding:1rem 1.1rem; margin-bottom:0.9rem; }
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media (max-width:680px){ .grid-2{ grid-template-columns:1fr; } }
+
+  .stat-row{ display:flex; gap:0.9rem; flex-wrap:wrap; }
+  .stat{ flex:1; min-width:130px; border:1px solid var(--line); background:var(--panel-alt); padding:0.7rem 0.8rem; border-radius:2px; }
+  .stat .label{ font-size:0.74rem; color:var(--ink-muted); }
+  .stat .value{ font-family:'IBM Plex Mono', monospace; font-size:1.35rem; margin-top:0.1em; }
+  .stat .value.ok{ color:var(--ok); } .stat .value.bad{ color:var(--bad); }
+
+  .flag{ display:flex; gap:0.7rem; padding:0.6rem 0; border-bottom:1px dashed var(--line); align-items:flex-start; }
+  .flag:last-child{ border-bottom:none; }
+  .flag .dot{ width:8px; height:8px; border-radius:50%; margin-top:0.4em; flex:0 0 auto; }
+  .flag .dot.warn{ background:var(--warn); } .flag .dot.bad{ background:var(--bad); }
+  .flag .txt{ font-size:0.9rem; }
+  .flag .meta{ font-size:0.76rem; color:var(--ink-muted); }
+
+  .list-row{ padding:0.6rem 0; border-bottom:1px solid var(--line); font-size:0.9rem; }
+  .list-row:last-child{ border-bottom:none; }
+  .list-row .top-line{ display:flex; justify-content:space-between; gap:0.6rem; }
+  .list-row .sub{ color:var(--ink-muted); font-size:0.8rem; margin-top:0.15em; }
+  .pill{ display:inline-block; font-size:0.72rem; padding:0.12em 0.55em; border-radius:2px; border:1px solid var(--line); color:var(--ink-muted); }
+  .pill.ok{ border-color:var(--ok); color:var(--ok); } .pill.warn{ border-color:var(--warn); color:var(--warn); }
+  .pill.bad{ border-color:var(--bad); color:var(--bad); }
+
+  .btn{ background:var(--accent); color:var(--bg); border:none; padding:0.55em 1em; border-radius:2px; font-size:0.88rem; }
+  .btn.secondary{ background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .btn.block{ width:100%; margin-top:0.8rem; }
+  .btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .empty-state{ color:var(--ink-muted); font-style:italic; padding:0.6rem 0; }
+  .helper{ font-size:0.8rem; color:var(--ink-muted); margin-top:0.3em; }
+
+  .modal-back{ position:fixed; inset:0; background:rgba(20,20,15,0.55); display:flex; align-items:center; justify-content:center; padding:1rem; z-index:20; }
+  .modal{ background:var(--panel); border:1px solid var(--line); border-radius:2px; padding:1.4rem; width:100%; max-width:380px; }
+
+  .toast{
+    position:fixed; bottom:1.2rem; right:1.2rem; background:var(--ink); color:var(--bg);
+    padding:0.6em 1em; border-radius:2px; font-size:0.85rem; opacity:0; transform:translateY(6px);
+    transition:opacity 0.2s ease, transform 0.2s ease; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+  @media (prefers-reduced-motion: reduce){ .toast{ transition:none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>Gate &amp; Sales Ledger</h1>
+    <span class="sync mono" id="sync-indicator">connecting&hellip;</span>
+  </div>
+  <div class="who">
+    <span id="who-name">&mdash;</span>
+    <span class="role-badge" id="who-role">&mdash;</span>
+    <button id="switch-role">Switch</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs"></nav>
+
+<main id="main"></main>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+(function(){
+
+  /* ---------- identity (local per device) ---------- */
+  var ID_KEY = 'gsl-identity-v1';
+  function loadIdentity(){
+    try{ var raw = localStorage.getItem(ID_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+    return null;
+  }
+  function saveIdentity(id){
+    try{ localStorage.setItem(ID_KEY, JSON.stringify(id)); }catch(e){}
+  }
+  var identity = loadIdentity();
+
+  /* ---------- store: db capability with localStorage fallback ---------- */
+  var LOCAL_KEY = 'gsl-local-store-v1';
+  var storeMode = 'local';
+  var dbApi = null;
+  var local = { activeCycle:null, sales:[], gate:[], counts:[] };
+  function loadLocal(){
+    try{ var raw = localStorage.getItem(LOCAL_KEY); if(raw) local = JSON.parse(raw); }catch(e){}
+  }
+  function saveLocal(){
+    try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(local)); }catch(e){}
+  }
+  loadLocal();
+  var localListeners = { activeCycle:[], sales:[], gate:[], counts:[] };
+  function notifyLocal(key){
+    (localListeners[key]||[]).forEach(function(fn){ fn(); });
+  }
+
+  function genId(){ return 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  var Store = {
+    async init(){
+      try{ dbApi = await claude.use('db'); }catch(e){ dbApi = null; }
+      storeMode = dbApi ? 'db' : 'local';
+      var ind = document.getElementById('sync-indicator');
+      ind.textContent = storeMode === 'db' ? 'synced across devices' : 'saved on this device only';
+    },
+    subscribeActiveCycle: function(cb){
+      if(storeMode === 'db'){
+        return dbApi.doc('meta/activeCycle').onSnapshot(function(snap){
+          cb(snap.exists ? snap.data() : null);
+        }, function(){ cb(null); });
+      }
+      localListeners.activeCycle.push(cb);
+      cb(local.activeCycle);
+      return function(){
+        localListeners.activeCycle = localListeners.activeCycle.filter(function(f){ return f!==cb; });
+      };
+    },
+    setActiveCycle: async function(data){
+      if(storeMode === 'db'){
+        await dbApi.doc('meta/activeCycle').set(data);
+      } else {
+        local.activeCycle = data; saveLocal(); notifyLocal('activeCycle');
+      }
+    },
+    subscribeCollection: function(name, cycleId, cb){
+      if(!cycleId){ cb([]); return function(){}; }
+      if(storeMode === 'db'){
+        return dbApi.collection(name).where('cycleId','==',cycleId).orderBy('recordedAt','desc').limit(300)
+          .onSnapshot(function(snap){
+            cb(snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }));
+          }, function(){ cb([]); });
+      }
+      var fn = function(){
+        var rows = (local[name]||[]).filter(function(r){ return r.cycleId === cycleId; })
+          .sort(function(a,b){ return (b.recordedAt||'').localeCompare(a.recordedAt||''); });
+        cb(rows);
+      };
+      localListeners[name].push(fn);
+      fn();
+      return function(){
+        localListeners[name] = localListeners[name].filter(function(f){ return f!==fn; });
+      };
+    },
+    addDoc: async function(name, data){
+      if(storeMode === 'db'){
+        var ref = await dbApi.collection(name).add(data);
+        return ref.id;
+      }
+      var id = genId();
+      local[name] = local[name] || [];
+      local[name].push(Object.assign({id:id}, data));
+      saveLocal(); notifyLocal(name);
+      return id;
+    },
+    updateDoc: async function(name, id, data){
+      if(storeMode === 'db'){
+        await dbApi.collection(name).doc(id).update(data);
+        return;
+      }
+      local[name] = (local[name]||[]).map(function(r){ return r.id===id ? Object.assign({}, r, data) : r; });
+      saveLocal(); notifyLocal(name);
+    }
+  };
+
+  /* ---------- toast ---------- */
+  function toast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 1300);
+  }
+
+  /* ---------- role onboarding ---------- */
+  var ROLES = [
+    {id:'admin', label:'Admin'},
+    {id:'gatekeeper', label:'Gatekeeper'},
+    {id:'salesperson', label:'Salesperson'}
+  ];
+  function showOnboarding(){
+    var back = document.createElement('div');
+    back.className = 'modal-back';
+    back.innerHTML =
+      '<div class="modal">' +
+        '<h2>Who\'s recording?</h2>' +
+        '<p style="font-size:0.85rem">Your name and role are saved on this device, so every entry you make is attributed to you.</p>' +
+        '<label class="field">Your name</label>' +
+        '<input type="text" id="ob-name" placeholder="e.g. Kojo">' +
+        '<label class="field">Your role</label>' +
+        '<select id="ob-role">' + ROLES.map(function(r){ return '<option value="'+r.id+'">'+r.label+'</option>'; }).join('') + '</select>' +
+        '<button class="btn block" id="ob-save">Continue</button>' +
+      '</div>';
+    document.body.appendChild(back);
+    if(identity){
+      back.querySelector('#ob-name').value = identity.name || '';
+      back.querySelector('#ob-role').value = identity.role || 'admin';
+    }
+    back.querySelector('#ob-save').addEventListener('click', function(){
+      var name = back.querySelector('#ob-name').value.trim() || 'Unnamed';
+      var role = back.querySelector('#ob-role').value;
+      identity = {name:name, role:role};
+      saveIdentity(identity);
+      document.body.removeChild(back);
+      renderShell();
+    });
+  }
+  document.getElementById('switch-role').addEventListener('click', showOnboarding);
+
+  /* ---------- app state ---------- */
+  var activeCycle = null;
+  var salesRows = [], gateRows = [], countRows = [];
+  var currentTab = 'overview';
+  var unsubs = [];
+
+  function clearSubs(){ unsubs.forEach(function(u){ u(); }); unsubs = []; }
+
+  function resubscribe(){
+    clearSubs();
+    var cycleId = activeCycle ? activeCycle.cycleId : null;
+    unsubs.push(Store.subscribeCollection('sales', cycleId, function(rows){ salesRows = rows; renderTab(); }));
+    unsubs.push(Store.subscribeCollection('gate', cycleId, function(rows){ gateRows = rows; renderTab(); }));
+    unsubs.push(Store.subscribeCollection('counts', cycleId, function(rows){ countRows = rows; renderTab(); }));
+  }
+
+  function tabsForRole(role){
+    var base = [{id:'overview', label:'Overview'}];
+    if(role === 'admin') base.push({id:'cycle', label:'Cycle & counts'});
+    if(role === 'gatekeeper') base.push({id:'gate', label:'Log an exit'});
+    if(role === 'salesperson') base.push({id:'sales', label:'Log a sale'});
+    base.push({id:'records', label:'All records'});
+    return base;
+  }
+
+  function renderShell(){
+    document.getElementById('who-name').textContent = identity.name;
+    document.getElementById('who-role').textContent = ROLES.find(function(r){ return r.id===identity.role; }).label;
+    var tabs = tabsForRole(identity.role);
+    if(!tabs.find(function(t){ return t.id===currentTab; })) currentTab = 'overview';
+    var nav = document.getElementById('tabs');
+    nav.innerHTML = tabs.map(function(t){
+      return '<button data-tab="'+t.id+'" class="'+(t.id===currentTab?'active':'')+'">'+t.label+'</button>';
+    }).join('');
+    nav.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){ currentTab = b.dataset.tab; renderShell(); });
+    });
+    renderTab();
+  }
+
+  function fmtDate(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined,{month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString(undefined,{hour:'numeric', minute:'2-digit'});
+  }
+  function shortRef(prefix, id){ return prefix + '-' + id.slice(-5).toUpperCase(); }
+
+  /* ---------- reconciliation math (shared by overview) ---------- */
+  function computeLedger(){
+    var chicksIn = activeCycle ? Number(activeCycle.chicksReceived)||0 : 0;
+    var otherDepartures = gateRows.filter(function(g){ return g.type==='other'; }).reduce(function(s,g){ return s+(Number(g.quantity)||0); },0);
+    var saleDepartures = gateRows.filter(function(g){ return g.type==='sale_exit'; }).reduce(function(s,g){ return s+(Number(g.quantity)||0); },0);
+    var totalDepartures = otherDepartures + saleDepartures;
+    var expected = chicksIn - totalDepartures;
+    var latestCount = countRows.length ? countRows[0] : null;
+    var variance = latestCount ? expected - Number(latestCount.quantity) : null;
+    var openSales = salesRows.filter(function(s){ return s.status === 'awaiting_gate'; });
+    var mismatches = salesRows.filter(function(s){ return s.status === 'mismatch'; });
+    var unexplainedExits = gateRows.filter(function(g){ return g.type==='other' && g.reason==='unknown'; });
+    return {chicksIn:chicksIn, otherDepartures:otherDepartures, saleDepartures:saleDepartures, totalDepartures:totalDepartures,
+      expected:expected, latestCount:latestCount, variance:variance, openSales:openSales, mismatches:mismatches, unexplainedExits:unexplainedExits};
+  }
+
+  /* ---------- tab renderers ---------- */
+  function renderTab(){
+    var m = document.getElementById('main');
+    if(!activeCycle && currentTab !== 'cycle'){
+      m.innerHTML = '<div class="card"><h2>No active cycle yet</h2><p>' +
+        (identity.role==='admin' ? 'Start one in the Cycle & counts tab before logging sales or gate activity.' : 'Ask your admin to start a production cycle before you log anything.') +
+        '</p></div>';
+      return;
+    }
+    if(currentTab === 'overview') return renderOverview(m);
+    if(currentTab === 'cycle') return renderCycle(m);
+    if(currentTab === 'gate') return renderGateForm(m);
+    if(currentTab === 'sales') return renderSalesForm(m);
+    if(currentTab === 'records') return renderRecords(m);
+  }
+
+  function renderOverview(m){
+    var l = computeLedger();
+    var html = '';
+    html += '<div class="card"><h2>' + (activeCycle.name||'Current cycle') + '</h2>';
+    html += '<p class="helper">Started ' + (activeCycle.startDate||'') + ', ' + l.chicksIn.toLocaleString() + ' birds received.</p>';
+    html += '<div class="stat-row">' +
+      '<div class="stat"><div class="label">Departures logged</div><div class="value mono">' + l.totalDepartures.toLocaleString() + '</div></div>' +
+      '<div class="stat"><div class="label">Expected remaining</div><div class="value mono">' + l.expected.toLocaleString() + '</div></div>' +
+      '<div class="stat"><div class="label">Latest count</div><div class="value mono">' + (l.latestCount ? Number(l.latestCount.quantity).toLocaleString() : '&mdash;') + '</div></div>' +
+      '<div class="stat"><div class="label">Variance</div><div class="value mono ' + (l.variance===null ? '' : (l.variance===0?'ok':'bad')) + '">' + (l.variance===null ? 'no count yet' : (l.variance>0?'+':'')+l.variance.toLocaleString()) + '</div></div>' +
+      '</div></div>';
+
+    var flags = [];
+    l.openSales.forEach(function(s){
+      flags.push({level:'warn', txt:'Sale ' + shortRef('S', s.id) + ' to ' + s.customer + ' (' + s.quantity + ') has not been confirmed at the gate yet.', meta:fmtDate(s.recordedAt)});
+    });
+    l.mismatches.forEach(function(s){
+      flags.push({level:'bad', txt:'Sale ' + shortRef('S', s.id) + ' to ' + s.customer + ' declared ' + s.quantity + ' but the gate recorded ' + s.gateQuantity + '.', meta:fmtDate(s.recordedAt)});
+    });
+    l.unexplainedExits.forEach(function(g){
+      flags.push({level:'bad', txt:'Gate exit ' + shortRef('G', g.id) + ' of ' + g.quantity + ' birds has no sale and no confirmed reason.', meta:fmtDate(g.recordedAt) + (g.note ? ' \u00b7 ' + g.note : '')});
+    });
+    if(l.variance !== null && l.variance !== 0){
+      flags.push({level:'bad', txt:'Paperwork and the physical count disagree by ' + Math.abs(l.variance) + ' birds.', meta:'as of latest count'});
+    }
+    html += '<div class="card"><h3>Flags</h3>';
+    html += flags.length ? flags.map(function(f){
+      return '<div class="flag"><div class="dot ' + f.level + '"></div><div><div class="txt">' + f.txt + '</div><div class="meta">' + f.meta + '</div></div></div>';
+    }).join('') : '<div class="empty-state">Nothing outstanding right now.</div>';
+    html += '</div>';
+    m.innerHTML = html;
+  }
+
+  function renderCycle(m){
+    var l = activeCycle ? computeLedger() : null;
+    var html = '<div class="card"><h2>' + (activeCycle ? 'Cycle settings' : 'Start a production cycle') + '</h2>';
+    html += '<label class="field">Cycle name</label><input type="text" id="cy-name" value="' + (activeCycle ? escAttr(activeCycle.name) : '') + '" placeholder="e.g. May batch">';
+    html += '<label class="field">Chicks received</label><input type="number" id="cy-qty" value="' + (activeCycle ? activeCycle.chicksReceived : '') + '" placeholder="e.g. 1500">';
+    html += '<label class="field">Start date</label><input type="date" id="cy-date" value="' + (activeCycle ? activeCycle.startDate : '') + '">';
+    html += '<button class="btn block" id="cy-save">' + (activeCycle ? 'Update cycle' : 'Start cycle') + '</button>';
+    if(activeCycle){
+      html += '<p class="helper">Starting a new cycle below will archive this one, its sales and gate history stay in the records but drop out of the live totals.</p>';
+      html += '<button class="btn secondary block" id="cy-new">Start a new cycle instead</button>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><h2>Record a physical count</h2>';
+    html += '<label class="field">Birds counted</label><input type="number" id="ct-qty" placeholder="e.g. 190">';
+    html += '<label class="field inline"><input type="checkbox" id="ct-approx" style="width:auto;display:inline-block;margin-right:0.4em"> This is an estimate, not an exact count</label>';
+    html += '<label class="field">Note</label><textarea id="ct-note" placeholder="optional"></textarea>';
+    html += '<button class="btn block" id="ct-save"' + (activeCycle?'':' disabled') + '>Save count</button></div>';
+
+    if(activeCycle){
+      html += '<div class="card"><h3>Count history</h3>' + renderCountList() + '</div>';
+    }
+    m.innerHTML = html;
+
+    document.getElementById('cy-save').addEventListener('click', async function(){
+      var name = document.getElementById('cy-name').value.trim() || 'Untitled cycle';
+      var qty = Number(document.getElementById('cy-qty').value) || 0;
+      var date = document.getElementById('cy-date').value;
+      var cycleId = activeCycle ? activeCycle.cycleId : genId();
+      await Store.setActiveCycle({cycleId:cycleId, name:name, chicksReceived:qty, startDate:date, createdBy:identity.name, createdAt: activeCycle ? activeCycle.createdAt : new Date().toISOString()});
+      toast('Saved');
+    });
+    var newBtn = document.getElementById('cy-new');
+    if(newBtn) newBtn.addEventListener('click', async function(){
+      if(!confirm('Start a fresh cycle? Past sales and gate entries will stay recorded but stop counting toward live totals.')) return;
+      await Store.setActiveCycle({cycleId:genId(), name:'New cycle', chicksReceived:0, startDate:new Date().toISOString().slice(0,10), createdBy:identity.name, createdAt:new Date().toISOString()});
+      toast('New cycle started');
+    });
+    document.getElementById('ct-save').addEventListener('click', async function(){
+      var qty = Number(document.getElementById('ct-qty').value);
+      if(!qty && qty !== 0){ toast('Enter a count'); return; }
+      await Store.addDoc('counts', {cycleId:activeCycle.cycleId, quantity:qty, approximate:document.getElementById('ct-approx').checked,
+        note:document.getElementById('ct-note').value.trim(), recordedBy:identity.name, recordedAt:new Date().toISOString()});
+      toast('Count saved');
+      document.getElementById('ct-qty').value=''; document.getElementById('ct-note').value='';
+    });
+  }
+
+  function renderCountList(){
+    if(!countRows.length) return '<div class="empty-state">No counts recorded yet.</div>';
+    return countRows.slice(0,15).map(function(c){
+      return '<div class="list-row"><div class="top-line"><span>' + Number(c.quantity).toLocaleString() + ' birds' + (c.approximate?' (estimate)':'') + '</span><span class="sub">' + fmtDate(c.recordedAt) + '</span></div>' +
+        '<div class="sub">by ' + c.recordedBy + (c.note?' \u00b7 ' + c.note:'') + '</div></div>';
+    }).join('');
+  }
+
+  function renderSalesForm(m){
+    var html = '<div class="card"><h2>Log a sale</h2>';
+    html += '<label class="field">Customer</label><input type="text" id="sl-customer" placeholder="e.g. Hotel A">';
+    html += '<label class="field">Quantity</label><input type="number" id="sl-qty" placeholder="e.g. 100">';
+    html += '<label class="field">Price (optional)</label><input type="number" id="sl-price" placeholder="total, optional">';
+    html += '<label class="field">Note</label><textarea id="sl-note" placeholder="optional"></textarea>';
+    html += '<button class="btn block" id="sl-save">Save sale</button>';
+    html += '<p class="helper">This creates an open reference the gatekeeper matches against when the birds actually leave.</p>';
+    html += '</div>';
+    html += '<div class="card"><h3>Your recent sales</h3>' + renderSalesList(salesRows.filter(function(s){ return s.recordedBy === identity.name; })) + '</div>';
+    m.innerHTML = html;
+    document.getElementById('sl-save').addEventListener('click', async function(){
+      var customer = document.getElementById('sl-customer').value.trim();
+      var qty = Number(document.getElementById('sl-qty').value);
+      if(!customer || !qty){ toast('Enter a customer and quantity'); return; }
+      await Store.addDoc('sales', {cycleId:activeCycle.cycleId, customer:customer, quantity:qty,
+        price: document.getElementById('sl-price').value ? Number(document.getElementById('sl-price').value) : null,
+        note:document.getElementById('sl-note').value.trim(), status:'awaiting_gate', recordedBy:identity.name, recordedAt:new Date().toISOString()});
+      toast('Sale saved');
+      document.getElementById('sl-customer').value=''; document.getElementById('sl-qty').value=''; document.getElementById('sl-price').value=''; document.getElementById('sl-note').value='';
+    });
+  }
+
+  function statusPill(s){
+    if(s.status==='gate_confirmed') return '<span class="pill ok">Gate confirmed</span>';
+    if(s.status==='mismatch') return '<span class="pill bad">Quantity mismatch</span>';
+    return '<span class="pill warn">Awaiting gate</span>';
+  }
+  function renderSalesList(rows){
+    if(!rows.length) return '<div class="empty-state">Nothing yet.</div>';
+    return rows.slice(0,25).map(function(s){
+      return '<div class="list-row"><div class="top-line"><span>' + shortRef('S', s.id) + ' &middot; ' + s.customer + ' &middot; ' + s.quantity + '</span>' + statusPill(s) + '</div>' +
+        '<div class="sub">' + fmtDate(s.recordedAt) + ' by ' + s.recordedBy + (s.note?' \u00b7 '+s.note:'') + '</div></div>';
+    }).join('');
+  }
+
+  function renderGateForm(m){
+    var openSales = salesRows.filter(function(s){ return s.status === 'awaiting_gate'; });
+    var html = '<div class="card"><h2>Match an open sale</h2>';
+    html += openSales.length ? openSales.map(function(s){
+      return '<div class="list-row"><div class="top-line"><span>' + shortRef('S', s.id) + ' &middot; ' + s.customer + ' &middot; declared ' + s.quantity + '</span>' +
+        '<button class="btn secondary" data-match="' + s.id + '" data-qty="' + s.quantity + '">Match</button></div>' +
+        '<div class="sub">' + fmtDate(s.recordedAt) + ' by ' + s.recordedBy + '</div></div>';
+    }).join('') : '<div class="empty-state">No open sales waiting right now.</div>';
+    html += '</div>';
+
+    html += '<div class="card"><h2>Log an exit without a sale</h2>';
+    html += '<label class="field">Quantity leaving</label><input type="number" id="gt-qty">';
+    html += '<label class="field">Reason</label><select id="gt-reason">' +
+      '<option value="mortality">Mortality or loss removal</option>' +
+      '<option value="transfer">Farm transfer</option>' +
+      '<option value="personal_use">Personal or staff use</option>' +
+      '<option value="unknown">Unknown, needs follow-up</option>' +
+      '</select>';
+    html += '<label class="field">Note</label><textarea id="gt-note" placeholder="what happened, who authorized it, etc."></textarea>';
+    html += '<button class="btn block" id="gt-save">Save exit</button></div>';
+
+    html += '<div class="card"><h3>Today\'s gate log</h3>' + renderGateList(gateRows) + '</div>';
+    m.innerHTML = html;
+
+    m.querySelectorAll('[data-match]').forEach(function(btn){
+      btn.addEventListener('click', function(){ openMatchPrompt(btn.dataset.match, Number(btn.dataset.qty)); });
+    });
+    document.getElementById('gt-save').addEventListener('click', async function(){
+      var qty = Number(document.getElementById('gt-qty').value);
+      if(!qty){ toast('Enter a quantity'); return; }
+      var reason = document.getElementById('gt-reason').value;
+      var note = document.getElementById('gt-note').value.trim();
+      if(reason === 'unknown' && !note){ toast('Add a note for unknown exits'); return; }
+      await Store.addDoc('gate', {cycleId:activeCycle.cycleId, type:'other', quantity:qty, reason:reason, note:note, recordedBy:identity.name, recordedAt:new Date().toISOString()});
+      toast('Exit saved');
+      document.getElementById('gt-qty').value=''; document.getElementById('gt-note').value='';
+    });
+  }
+
+  function openMatchPrompt(saleId, declaredQty){
+    var back = document.createElement('div');
+    back.className = 'modal-back';
+    back.innerHTML = '<div class="modal"><h2>Confirm quantity leaving</h2>' +
+      '<p style="font-size:0.85rem">Declared sale quantity was ' + declaredQty + '. Enter what actually left through the gate.</p>' +
+      '<input type="number" id="mt-qty" value="' + declaredQty + '">' +
+      '<button class="btn block" id="mt-save">Confirm</button>' +
+      '<button class="btn secondary block" id="mt-cancel">Cancel</button></div>';
+    document.body.appendChild(back);
+    back.querySelector('#mt-cancel').addEventListener('click', function(){ document.body.removeChild(back); });
+    back.querySelector('#mt-save').addEventListener('click', async function(){
+      var qty = Number(back.querySelector('#mt-qty').value);
+      var gateId = await Store.addDoc('gate', {cycleId:activeCycle.cycleId, type:'sale_exit', quantity:qty, saleId:saleId, recordedBy:identity.name, recordedAt:new Date().toISOString()});
+      await Store.updateDoc('sales', saleId, {status: qty===declaredQty ? 'gate_confirmed' : 'mismatch', gateQuantity:qty, gateEntryId:gateId});
+      document.body.removeChild(back);
+      toast('Matched');
+    });
+  }
+
+  function reasonLabel(r){
+    return {mortality:'Mortality or loss', transfer:'Farm transfer', personal_use:'Personal or staff use', unknown:'Unknown'}[r] || r;
+  }
+  function renderGateList(rows){
+    if(!rows.length) return '<div class="empty-state">Nothing logged yet.</div>';
+    return rows.slice(0,25).map(function(g){
+      var desc = g.type==='sale_exit' ? ('Matched to ' + shortRef('S', g.saleId)) : reasonLabel(g.reason);
+      return '<div class="list-row"><div class="top-line"><span>' + shortRef('G', g.id) + ' &middot; ' + g.quantity + ' birds &middot; ' + desc + '</span></div>' +
+        '<div class="sub">' + fmtDate(g.recordedAt) + ' by ' + g.recordedBy + (g.note?' \u00b7 '+g.note:'') + '</div></div>';
+    }).join('');
+  }
+
+  function renderRecords(m){
+    var rows = [].concat(
+      salesRows.map(function(r){ return Object.assign({kind:'sale'}, r); }),
+      gateRows.map(function(r){ return Object.assign({kind:'gate'}, r); }),
+      countRows.map(function(r){ return Object.assign({kind:'count'}, r); })
+    ).sort(function(a,b){ return (b.recordedAt||'').localeCompare(a.recordedAt||''); });
+    var html = '<div class="card"><h2>All records</h2>';
+    html += rows.length ? rows.slice(0,60).map(function(r){
+      var line;
+      if(r.kind==='sale') line = 'Sale ' + shortRef('S', r.id) + ' to ' + r.customer + ', ' + r.quantity + ' birds ' + statusPill(r);
+      else if(r.kind==='gate') line = 'Gate ' + shortRef('G', r.id) + ', ' + r.quantity + ' birds, ' + (r.type==='sale_exit' ? 'matched to ' + shortRef('S', r.saleId) : reasonLabel(r.reason));
+      else line = 'Count of ' + Number(r.quantity).toLocaleString() + (r.approximate?' (estimate)':'');
+      return '<div class="list-row"><div class="top-line"><span>' + line + '</span></div><div class="sub">' + fmtDate(r.recordedAt) + ' by ' + r.recordedBy + '</div></div>';
+    }).join('') : '<div class="empty-state">No activity yet on this cycle.</div>';
+    html += '</div>';
+    m.innerHTML = html;
+  }
+
+  function escAttr(v){ return (v||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+  /* ---------- boot ---------- */
+  async function boot(){
+    await Store.init();
+    if(!identity){ showOnboarding(); } else { renderShell(); }
+    Store.subscribeActiveCycle(function(cycle){
+      activeCycle = cycle;
+      resubscribe();
+      renderShell();
+    });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
